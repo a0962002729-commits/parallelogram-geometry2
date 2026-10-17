@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>幾何實驗室：平行四邊形對角線剪紙與疊合</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: #f4f7f6;
+        margin: 0;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    h1 {
+        color: #0b4354;
+        margin: 0 0 8px;
+        font-size: 24px;
+        text-align: center;
+    }
+
+    .subtitle {
+        color: #587078;
+        font-size: 14px;
+        text-align: center;
+        margin-bottom: 12px;
+    }
+
+    .main-container {
+        display: flex;
+        flex-direction: row;
+        gap: 20px;
+        max-width: 1000px;
+        width: 100%;
+        margin-top: 15px;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-start;
+    }
+
+    canvas {
+        display: block;
+        width: 550px;
+        max-width: 100%;
+        height: auto;
+        background: #fff;
+        border: 2px solid #0b4354;
+        border-radius: 8px;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.05);
+        cursor: default;
+        touch-action: none;
+    }
+
+    .sidebar {
+        flex: 1;
+        min-width: 290px;
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .panel {
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        border-left: 5px solid #0b4354;
+    }
+
+    .panel h3 {
+        margin-top: 0;
+        color: #0b4354;
+        margin-bottom: 12px;
+    }
+
+    .radio-group {
+        margin-bottom: 10px;
+        font-size: 15px;
+        line-height: 2;
+    }
+
+    .radio-group input {
+        cursor: pointer;
+    }
+
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 12px;
+    }
+
+    .row-btn {
+        display: flex;
+        gap: 10px;
+    }
+
+    button {
+        background: #0b4354;
+        color: white;
+        border: none;
+        padding: 11px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: bold;
+        transition: background 0.2s;
+    }
+
+    button:hover:not(:disabled) {
+        filter: brightness(1.12);
+    }
+
+    button:disabled {
+        background: #b9c1c3 !important;
+        cursor: not-allowed;
+    }
+
+    .row-btn button {
+        flex: 1;
+    }
+
+    .cut-btn {
+        background: #0b4354;
+    }
+
+    .rotate-btn {
+        background: #00897b;
+    }
+
+    .reset-btn {
+        background: #8e24aa;
+    }
+
+    .ai-box {
+        background: #e0f2f1;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 5px solid #00897b;
+        min-height: 160px;
+    }
+
+    .ai-box h3 {
+        color: #00796b;
+        margin: 0 0 8px;
+    }
+
+    .ai-text {
+        font-size: 15px;
+        color: #004d40;
+        line-height: 1.8;
+        font-weight: bold;
+    }
+
+    .legend {
+        background: white;
+        width: 100%;
+        max-width: 1000px;
+        margin-top: 12px;
+        padding: 12px 15px;
+        border-radius: 8px;
+        display: flex;
+        justify-content: center;
+        gap: 24px;
+        flex-wrap: wrap;
+        color: #344b52;
+        font-size: 14px;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .line-sample {
+        display: inline-block;
+        width: 35px;
+        border-top: 3px dashed;
+    }
+
+    .orange {
+        border-color: #e65100;
+    }
+
+    .green {
+        border-color: #2e7d32;
+    }
+
+    .tip {
+        font-size: 13px;
+        color: #52666b;
+        line-height: 1.6;
+        margin-top: 10px;
+    }
+
+    @media (max-width: 600px) {
+        body {
+            padding: 12px;
+        }
+
+        h1 {
+            font-size: 20px;
+        }
+
+        .main-container {
+            gap: 14px;
+        }
+
+        .sidebar {
+            min-width: 0;
+            width: 100%;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<h1>✂️ 幾何實驗室：平行四邊形對角線剪紙與疊合</h1>
+<div class="subtitle">動手剪開、自由拖拉、旋轉觀察三角形的關係</div>
+
+<div class="main-container">
+
+    <canvas id="geoCanvas" width="550" height="400">
+        您的瀏覽器不支援 Canvas。
+    </canvas>
+
+    <div class="sidebar">
+
+        <div class="panel">
+            <h3>🛠️ 實驗工具箱</h3>
+
+            <div class="radio-group">
+                <b>選擇要剪開的對角線：</b><br>
+
+                <input type="radio" id="lineAC"
+                       name="diag" value="AC" checked>
+                <label for="lineAC"
+                       style="color:#e65100;font-weight:bold;">
+                    對角線 AC（橘色）
+                </label><br>
+
+                <input type="radio" id="lineBD"
+                       name="diag" value="BD">
+                <label for="lineBD"
+                       style="color:#2e7d32;font-weight:bold;">
+                    對角線 BD（綠色）
+                </label>
+            </div>
+
+            <div class="btn-group">
+                <button id="btnCut" class="cut-btn">
+                    ✂️ 沿對角線剪開並分離！
+                </button>
+
+                <div class="row-btn">
+                    <button id="btnAnimate"
+                            class="rotate-btn" disabled>
+                        🔄 旋轉
+                    </button>
+
+                    <button id="btnReset" class="reset-btn">
+                        ↩ 還原圖形
+                    </button>
+                </div>
+            </div>
+
+            <div class="tip">
+                操作提示：剪開後，按住任一塊三角形即可拖拉；
+                點擊「旋轉」可讓第二塊三角形旋轉 180 度。
+            </div>
+        </div>
+
+        <div class="ai-box">
+            <h3>🧭 AI 助教的實驗紀錄</h3>
+            <div id="aiPrompt" class="ai-text" aria-live="polite">
+                請選擇一條對角線，開始實驗！
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="legend">
+    <div class="legend-item">
+        <span class="line-sample orange"></span>
+        <b>AC：橘色虛線</b>
+    </div>
+    <div class="legend-item">
+        <span class="line-sample green"></span>
+        <b>BD：綠色虛線</b>
+    </div>
+    <div class="legend-item">
+        <span style="width:14px;height:14px;background:rgba(25,118,210,.4);border:1px solid #1976d2;"></span>
+        第一塊三角形
+    </div>
+    <div class="legend-item">
+        <span style="width:14px;height:14px;background:rgba(211,47,47,.4);border:1px solid #d32f2f;"></span>
+        第二塊三角形
+    </div>
+</div>
+
+<script>
+(() => {
+    "use strict";
+
+    const canvas = document.getElementById("geoCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const btnCut = document.getElementById("btnCut");
+    const btnAnimate = document.getElementById("btnAnimate");
+    const btnReset = document.getElementById("btnReset");
+    const aiPrompt = document.getElementById("aiPrompt");
+    const diagInputs = document.querySelectorAll('input[name="diag"]');
+
+    // ==========================================
+    // 1. 原始頂點：固定不變，確保平行四邊形不變形
+    // ==========================================
+
+    const baseA = { x: 180, y: 120, label: "A" };
+    const baseB = { x: 100, y: 280, label: "B" };
+    const baseC = { x: 380, y: 280, label: "C" };
+    const baseD = { x: 460, y: 120, label: "D" };
+
+    const vertices = [baseA, baseB, baseC, baseD];
+
+    // ==========================================
+    // 2. 狀態
+    // ==========================================
+
+    let isCut = false;
+    let dropProgress = 0;
+    let t2Angle = 0;
+    let animatingAngle = false;
+    let selectedDiag = "AC";
+
+    let t1Offset = { x: 0, y: 0 };
+    let t2Offset = { x: 0, y: 0 };
+
+    const SEPARATION_Y = 50;
+    const ROTATION_DURATION = 600;
+    const CUT_DURATION = 500;
+
+    let draggingPiece = null;
+    let dragPointerId = null;
+    let dragStartMouse = { x: 0, y: 0 };
+    let dragStartOffset = { x: 0, y: 0 };
+
+    let animationToken = 0;
+
+    // ==========================================
+    // 3. 共用座標轉換
+    // 圖形、標籤、滑鼠判定全部使用同一套轉換
+    // ==========================================
+
+    function getCenterForSelectedDiagonal() {
+        if (selectedDiag === "AC") {
+            return {
+                x: (baseA.x + baseC.x) / 2,
+                y: (baseA.y + baseC.y) / 2
+            };
+        }
+
+        return {
+            x: (baseB.x + baseD.x) / 2,
+            y: (baseB.y + baseD.y) / 2
+        };
+    }
+
+    function getTriangles() {
+        if (selectedDiag === "AC") {
+            return {
+                t1: [baseA, baseB, baseC],
+                t2: [baseA, baseC, baseD]
+            };
+        }
+
+        return {
+            t1: [baseA, baseB, baseD],
+            t2: [baseB, baseC, baseD]
+        };
+    }
+
+    // 對點套用旋轉，再加上平移。
+    // 所有座標均使用 Canvas 的原始像素座標。
+    function transformPoint(
+        p,
+        angle = 0,
+        center = { x: 0, y: 0 },
+        offset = { x: 0, y: 0 }
+    ) {
+        const dx = p.x - center.x;
+        const dy = p.y - center.y;
+
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+
+        return {
+            x: center.x + dx * cos - dy * sin + offset.x,
+            y: center.y + dx * sin + dy * cos + offset.y,
+            label: p.label
+        };
+    }
+
+    function getPiecePoints(piece) {
+        const triangles = getTriangles();
+
+        if (piece === "t1") {
+            return triangles.t1.map(p =>
+                transformPoint(p, 0, { x: 0, y: 0 }, t1Offset)
+            );
+        }
+
+        const center = getCenterForSelectedDiagonal();
+        const offset = {
+            x: t2Offset.x,
+            y: t2Offset.y + dropProgress * SEPARATION_Y
+        };
+
+        return triangles.t2.map(p =>
+            transformPoint(p, t2Angle, center, offset)
+        );
+    }
+
+    // ==========================================
+    // 4. 繪圖工具
+    // ==========================================
+
+    function drawPolygon(points, fillColor) {
+        ctx.save();
+
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+
+        for (let i = 1; i < points.length; i++) {
+            ctx.lineTo(points[i].x, points[i].y);
+        }
+
+        ctx.closePath();
+
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+
+        ctx.strokeStyle = "#0b4354";
+        ctx.lineWidth = 2.5;
+        ctx.lineJoin = "round";
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    function drawDiagonal(p1, p2, color) {
+        ctx.save();
+
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 5]);
+        ctx.lineCap = "round";
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    // 標籤錨定在變換後的頂點。
+    // 標籤本身不參與旋轉，因此永遠保持正向。
+    function drawLabels(points) {
+        const center = points.reduce(
+            (acc, p) => ({
+                x: acc.x + p.x / points.length,
+                y: acc.y + p.y / points.length
+            }),
+            { x: 0, y: 0 }
+        );
+
+        ctx.save();
+
+        ctx.font = "bold 16px Arial, sans-serif";
+        ctx.fillStyle = "#111";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        points.forEach(p => {
+            let dx = p.x - center.x;
+            let dy = p.y - center.y;
+            const len = Math.hypot(dx, dy) || 1;
+
+            // 沿著頂點遠離三角形中心的方向放置標籤
+            const distance = 18;
+            const labelX = p.x + dx / len * distance;
+            const labelY = p.y + dy / len * distance;
+
+            // 淺色描邊讓文字在圖形上也清楚可見
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = "rgba(255,255,255,0.95)";
+            ctx.strokeText(p.label, labelX, labelY);
+
+            ctx.fillStyle = "#111";
+            ctx.fillText(p.label, labelX, labelY);
+        });
+
+        ctx.restore();
+    }
+
+    // ==========================================
+    // 5. 主繪圖函式
+    // ==========================================
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!isCut) {
+            // 先繪製整個平行四邊形
+            drawPolygon(
+                vertices,
+                "rgba(25,118,210,0.07)"
+            );
+
+            // 再繪製對角線，確保顏色不被填色覆蓋
+            drawDiagonal(baseA, baseC, "#e65100");
+            drawDiagonal(baseB, baseD, "#2e7d32");
+
+            // 四個頂點的標籤
+            vertices.forEach(p => {
+                drawLabels([p]);
+            });
+
+            return;
+        }
+
+        const triangles = getTriangles();
+
+        // 第一塊三角形
+        const points1 = getPiecePoints("t1");
+
+        drawPolygon(
+            points1,
+            "rgba(25,118,210,0.17)"
+        );
+
+        drawLabels(points1);
+
+        // 第二塊三角形
+        const points2 = getPiecePoints("t2");
+
+        const color2 = selectedDiag === "AC"
+            ? "rgba(211,47,47,0.20)"
+            : "rgba(46,125,50,0.20)";
+
+        drawPolygon(points2, color2);
+        drawLabels(points2);
+    }
+
+    // ==========================================
+    // 6. AI 助教提示
+    // ==========================================
+
+    function updateAIText() {
+        if (!isCut) {
+            aiPrompt.innerHTML =
+                "📐 <b>步驟一：觀察對角線</b><br>" +
+                "請觀察平行四邊形中的橘色 AC 與綠色 BD。" +
+                "選擇其中一條對角線，再按下剪開按鈕。";
+        } else if (dropProgress < 1) {
+            aiPrompt.innerHTML =
+                "✂️ <b>步驟二：剪開圖形</b><br>" +
+                "正在沿著所選對角線分離兩塊三角形……";
+        } else {
+            const diagonalText = selectedDiag === "AC"
+                ? "AC"
+                : "BD";
+
+            aiPrompt.innerHTML =
+                "✨ <b>步驟三：觀察三角形</b><br>" +
+                "你已沿對角線 " + diagonalText + " 剪開圖形。<br>" +
+                "① 拖拉兩塊三角形，觀察形狀與大小。<br>" +
+                "② 點擊「旋轉」，讓第二塊三角形旋轉 180 度。<br>" +
+                "③ 思考：兩塊三角形有哪些相同的邊與角？";
+        }
+    }
+
+    // ==========================================
+    // 7. 剪開按鈕
+    // ==========================================
+
+    btnCut.addEventListener("click", () => {
+        if (isCut) return;
+
+        selectedDiag = document.querySelector(
+            'input[name="diag"]:checked'
+        ).value;
+
+        isCut = true;
+        dropProgress = 0;
+        t2Angle = 0;
+
+        t1Offset = { x: 0, y: 0 };
+        t2Offset = { x: 0, y: 0 };
+
+        draggingPiece = null;
+
+        btnCut.disabled = true;
+        btnAnimate.disabled = true;
+
+        diagInputs.forEach(input => {
+            input.disabled = true;
+        });
+
+        updateAIText();
+
+        const token = ++animationToken;
+        let startTime = null;
+
+        function cutStep(timestamp) {
+            if (token !== animationToken || !isCut) return;
+
+            if (startTime === null) {
+                startTime = timestamp;
+            }
+
+            const progress = Math.min(
+                (timestamp - startTime) / CUT_DURATION,
+                1
+            );
+
+            // 緩和動畫
+            dropProgress = 1 - Math.pow(1 - progress, 3);
+
+            draw();
+
+            if (progress < 1) {
+                requestAnimationFrame(cutStep);
+            } else {
+                dropProgress = 1;
+                btnAnimate.disabled = false;
+                updateAIText();
+                draw();
+            }
+        }
+
+        requestAnimationFrame(cutStep);
+    });
+
+    // ==========================================
+    // 8. 旋轉按鈕：每次平滑旋轉 180 度
+    // ==========================================
+
+    btnAnimate.addEventListener("click", () => {
+        if (!isCut || dropProgress < 1 || animatingAngle) {
+            return;
+        }
+
+        animatingAngle = true;
+        btnAnimate.disabled = true;
+
+        const startAngle = t2Angle;
+        const targetAngle = startAngle + Math.PI;
+
+        let startTime = null;
+
+        const token = ++animationToken;
+
+        function rotateStep(timestamp) {
+            if (token !== animationToken || !isCut) return;
+
+            if (startTime === null) {
+                startTime = timestamp;
+            }
+
+            const progress = Math.min(
+                (timestamp - startTime) / ROTATION_DURATION,
+                1
+            );
+
+            // ease-out：先快後慢
+            const eased = 1 - Math.pow(1 - progress, 3);
+
+            t2Angle =
+                startAngle + (targetAngle - startAngle) * eased;
+
+            draw();
+
+            if (progress < 1) {
+                requestAnimationFrame(rotateStep);
+            } else {
+                // 正規化角度，避免數值持續增大
+                t2Angle = ((targetAngle % (2 * Math.PI))
+                    + 2 * Math.PI) % (2 * Math.PI);
+
+                animatingAngle = false;
+                btnAnimate.disabled = false;
+                draw();
+            }
+        }
+
+        requestAnimationFrame(rotateStep);
+    });
+
+    // ==========================================
+    // 9. 還原按鈕
+    // ==========================================
+
+    btnReset.addEventListener("click", () => {
+        // 使所有尚未完成的動畫失效
+        animationToken++;
+
+        isCut = false;
+        dropProgress = 0;
+        t2Angle = 0;
+        animatingAngle = false;
+
+        t1Offset = { x: 0, y: 0 };
+        t2Offset = { x: 0, y: 0 };
+
+        draggingPiece = null;
+        dragPointerId = null;
+
+        canvas.style.cursor = "default";
+
+        btnCut.disabled = false;
+        btnAnimate.disabled = true;
+
+        diagInputs.forEach(input => {
+            input.disabled = false;
+        });
+
+        document.getElementById("lineAC").checked = true;
+        selectedDiag = "AC";
+
+        updateAIText();
+        draw();
+    });
+
+    // ==========================================
+    // 10. 滑鼠及觸控座標換算
+    // ==========================================
+
+    function getMousePosition(e) {
+        const rect = canvas.getBoundingClientRect();
+
+        return {
+            x: (e.clientX - rect.left) * canvas.width / rect.width,
+            y: (e.clientY - rect.top) * canvas.height / rect.height
+        };
+    }
+
+    // 擴大三角形的命中區域，方便選取
+    function expandTriangle(points, factor = 1.12) {
+        const center = points.reduce(
+            (acc, p) => ({
+                x: acc.x + p.x / points.length,
+                y: acc.y + p.y / points.length
+            }),
+            { x: 0, y: 0 }
+        );
+
+        return points.map(p => ({
+            x: center.x + (p.x - center.x) * factor,
+            y: center.y + (p.y - center.y) * factor
+        }));
+    }
+
+    function isPointInTriangle(p, a, b, c) {
+        const cross = (p1, p2, p3) =>
+            (p1.x - p3.x) * (p2.y - p3.y) -
+            (p2.x - p3.x) * (p1.y - p3.y);
+
+        const d1 = cross(p, a, b);
+        const d2 = cross(p, b, c);
+        const d3 = cross(p, c, a);
+
+        const hasNegative =
+            d1 < 0 || d2 < 0 || d3 < 0;
+
+        const hasPositive =
+            d1 > 0 || d2 > 0 || d3 > 0;
+
+        return !(hasNegative && hasPositive);
+    }
+
+    function hitTestPiece(mouse, piece) {
+        const points = getPiecePoints(piece);
+        const expanded = expandTriangle(points, 1.12);
+
+        return isPointInTriangle(
+            mouse,
+            expanded[0],
+            expanded[1],
+            expanded[2]
+        );
+    }
+
+    // ==========================================
+    // 11. 獨立拖拉兩塊三角形
+    // ==========================================
+
+    canvas.addEventListener("pointerdown", e => {
+        if (!isCut || dropProgress < 1 || animatingAngle) {
+            return;
+        }
+
+        const mouse = getMousePosition(e);
+
+        // 第二塊先判定，避免重疊時優先選到下層圖形
+        if (hitTestPiece(mouse, "t2")) {
+            draggingPiece = "t2";
+            dragStartOffset = { ...t2Offset };
+        } else if (hitTestPiece(mouse, "t1")) {
+            draggingPiece = "t1";
+            dragStartOffset = { ...t1Offset };
+        } else {
+            return;
+        }
+
+        dragPointerId = e.pointerId;
+        dragStartMouse = mouse;
+
+        canvas.style.cursor = "grabbing";
+        canvas.setPointerCapture(e.pointerId);
+
+        e.preventDefault();
+    });
+
+    canvas.addEventListener("pointermove", e => {
+        if (!draggingPiece || e.pointerId !== dragPointerId) {
+            return;
+        }
+
+        const mouse = getMousePosition(e);
+
+        const dx = mouse.x - dragStartMouse.x;
+        const dy = mouse.y - dragStartMouse.y;
+
+        if (draggingPiece === "t1") {
+            t1Offset.x = dragStartOffset.x + dx;
+            t1Offset.y = dragStartOffset.y + dy;
+        } else {
+            // 保留分離動畫的位移，只更新使用者拖拉的偏移量
+            t2Offset.x = dragStartOffset.x + dx;
+            t2Offset.y = dragStartOffset.y + dy;
+        }
+
+        draw();
+    });
+
+    function finishDragging(e) {
+        if (!draggingPiece) return;
+
+        if (
+            e &&
+            dragPointerId !== null &&
+            e.pointerId !== undefined &&
+            e.pointerId !== dragPointerId
+        ) {
+            return;
+        }
+
+        draggingPiece = null;
+        dragPointerId = null;
+
+        canvas.style.cursor = "grab";
+    }
+
+    canvas.addEventListener("pointerup", finishDragging);
+    canvas.addEventListener("pointercancel", finishDragging);
+    canvas.addEventListener("lostpointercapture", () => {
+        draggingPiece = null;
+        dragPointerId = null;
+        canvas.style.cursor = "default";
+    });
+
+    canvas.addEventListener("pointermove", e => {
+        if (!draggingPiece && isCut && dropProgress >= 1) {
+            const mouse = getMousePosition(e);
+
+            canvas.style.cursor =
+                hitTestPiece(mouse, "t2") ||
+                hitTestPiece(mouse, "t1")
+                    ? "grab"
+                    : "default";
+        }
+    });
+
+    // ==========================================
+    // 12. 初始化
+    // ==========================================
+
+    updateAIText();
+    draw();
+
+})();
+</script>
+
+</body>
+</html>
