@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>幾何實驗室：平行四邊形對角線剪紙與疊合</title>
+<title>幾何實驗室：平行四邊形對邊相等性質</title>
 
 <style>
     * {
@@ -220,13 +220,33 @@
             width: 100%;
         }
     }
+
+    .quiz-panel { border-left-color: #00897b; }
+    .quiz-step { color:#52666b; font-size:13px; margin-bottom:8px; }
+    .quiz-question { font-size:16px; line-height:1.65; font-weight:700; color:#123d49; margin:8px 0 12px; }
+    .quiz-options { display:grid; gap:8px; }
+    .quiz-option { width:100%; text-align:left; background:#eef6f5; color:#163f49; border:1px solid #bfd8d5; font-weight:600; line-height:1.5; }
+    .quiz-option:hover:not(:disabled) { background:#dcefeb; }
+    .quiz-feedback { margin-top:10px; padding:10px 12px; border-radius:6px; background:#f3f7f7; color:#36545a; line-height:1.6; font-size:14px; }
+    .quiz-feedback.good { background:#e2f4e9; color:#17643a; }
+    .quiz-feedback.try { background:#fff4df; color:#805515; }
+    .quiz-progress { height:7px; background:#e5ecec; border-radius:20px; overflow:hidden; margin:8px 0 12px; }
+    .quiz-progress span { display:block; height:100%; width:0; background:#00897b; transition:width .25s; }
+    .quiz-option:focus-visible { outline:3px solid #ffbf47; outline-offset:2px; }
+    .stage4-tools { display:none; gap:8px; margin-top:12px; }
+    .stage4-tools.show { display:grid; }
+    .stage4-tools button { width:100%; line-height:1.45; }
+    .restore-only-btn { background:#f1f4f5; color:#24444b; border:1px solid #c7d4d7; }
+    .direct-split-btn { background:#087f75; color:#fff; border:1px solid #087f75; }
+    .stage4-note { color:#52666b; font-size:12px; line-height:1.5; margin-top:2px; }
+
 </style>
 </head>
 
 <body>
 
 <h1>✂️ 幾何實驗室：平行四邊形對角線剪紙與疊合</h1>
-<div class="subtitle">動手剪開、自由拖拉、旋轉觀察三角形的關係</div>
+<div class="subtitle">先預測、再剪開與旋轉驗證，最後歸納平行四邊形的性質</div>
 
 <div class="main-container">
 
@@ -235,6 +255,25 @@
     </canvas>
 
     <div class="sidebar">
+
+
+        <div class="panel quiz-panel" id="quizPanel">
+            <h3>🧠 自主探索任務</h3>
+            <div class="quiz-step" id="quizStepLabel">任務 1／3</div>
+            <div class="quiz-progress"><span id="quizProgress"></span></div>
+            <div class="quiz-question" id="quizQuestion">先想一想：一條對角線會把平行四邊形分成幾個三角形？</div>
+            <div class="quiz-options" id="quizOptions">
+                <button type="button" class="quiz-option" data-answer="A">A. 一個三角形</button>
+                <button type="button" class="quiz-option" data-answer="B">B. 兩個三角形</button>
+                <button type="button" class="quiz-option" data-answer="C">C. 三個三角形</button>
+            </div>
+            <div class="stage4-tools" id="stage4Tools">
+                <button type="button" id="btnRestoreShape" class="restore-only-btn">↩ 只還原圖形（保留目前任務）</button>
+                <button type="button" id="btnDirectSplit" class="direct-split-btn">✂️ 直接分成兩個三角形</button>
+                <div class="stage4-note">這兩個按鍵只調整圖形，不會清除前面已完成的任務。</div>
+            </div>
+            <div class="quiz-feedback" id="quizFeedback" aria-live="polite">請先預測答案。答對後才能進行下一個操作；答錯也沒關係，看看提示再試一次！</div>
+        </div>
 
         <div class="panel">
             <h3>🛠️ 實驗工具箱</h3>
@@ -258,7 +297,7 @@
             </div>
 
             <div class="btn-group">
-                <button id="btnCut" class="cut-btn">
+                <button id="btnCut" class="cut-btn" disabled>
                     ✂️ 沿對角線剪開並分離！
                 </button>
 
@@ -321,6 +360,127 @@
     const btnReset = document.getElementById("btnReset");
     const aiPrompt = document.getElementById("aiPrompt");
     const diagInputs = document.querySelectorAll('input[name="diag"]');
+
+    const quizQuestion = document.getElementById("quizQuestion");
+    const quizOptions = document.getElementById("quizOptions");
+    const quizFeedback = document.getElementById("quizFeedback");
+    const quizStepLabel = document.getElementById("quizStepLabel");
+    const quizProgress = document.getElementById("quizProgress");
+    const stage4Tools = document.getElementById("stage4Tools");
+    const btnRestoreShape = document.getElementById("btnRestoreShape");
+    const btnDirectSplit = document.getElementById("btnDirectSplit");
+
+    // 0: 第一題作答；1: 已答對第一題，等待剪開
+    // 2: 第二題作答；3: 已答對第二題，等待旋轉
+    // 4: 第三題作答；5: 第四題作答；6: 全部完成
+    let quizStage = 0;
+    let hasRotated = false;
+
+    const quizData = {
+        0: {
+            label: "任務 1／3｜先預測",
+            question: "先想一想：平行四邊形的一條對角線，會把圖形分成幾個三角形？",
+            options: [["A","一個三角形"],["B","兩個三角形"],["C","三個三角形"]],
+            correct: "B",
+            hint: "想像從一個頂點連到它的對角頂點，這條線會把原本的四邊形分成幾個區域？",
+            next: "答對了！請在下方選擇 AC 或 BD，再按「沿對角線剪開並分離」。"
+        },
+        2: {
+            label: "任務 2／3｜動手驗證",
+            question: "兩塊三角形已經分開。想比較它們的形狀與大小，下一步最適合怎麼做？",
+            options: [["A","把其中一塊旋轉 180°，再觀察能否與另一塊重合"],["B","只把其中一塊拉得更遠"],["C","改變其中一塊的大小"]],
+            correct: "A",
+            hint: "要比較兩個圖形是否完全相同，可以移動或旋轉圖形，但不能把它拉大或縮小。",
+            next: "很棒！接著按「旋轉」，觀察第二塊三角形旋轉 180° 後的情形。"
+        },
+        4: {
+            label: "任務 3／4｜歸納性質",
+            question: "經過剪開與旋轉觀察後，平行四邊形的一條對角線把它分成的兩個三角形有什麼關係？",
+            options: [["A","形狀相同，但大小一定不同"],["B","面積相同，但形狀不一定相同"],["C","形狀和大小都相同，兩個三角形全等"]],
+            correct: "C",
+            hint: "回想旋轉後的觀察：如果兩個三角形能完全重合，代表它們的形狀與大小有什麼關係？",
+            next: "答對了！接著想一想：這兩個全等三角形的對應邊，和原本平行四邊形的邊有什麼關係？"
+        },
+        5: {
+            label: "任務 4／4｜連結對應邊",
+            question: "兩個全等三角形的對應邊，對應到原本平行四邊形的哪些邊？",
+            options: [["A","平行四邊形相鄰的兩邊"],["B","平行四邊形的對邊"],["C","對角線與其中一條邊"]],
+            correct: "B",
+            hint: "觀察兩個三角形重合時，原本位在平行四邊形兩側的邊會互相對應。",
+            next: "很好！全等三角形的對應邊，正是平行四邊形的對邊；這也連結到平行四邊形的基本性質。"
+        }
+    };
+
+    function renderQuiz(message = "", kind = "") {
+        const data = quizData[quizStage];
+        stage4Tools.classList.toggle("show", quizStage === 5);
+        quizFeedback.className = "quiz-feedback" + (kind ? " " + kind : "");
+        if (quizStage === 1) {
+            quizStepLabel.textContent = "任務 1／4｜預測完成";
+            quizProgress.style.width = "33%";
+            quizQuestion.textContent = "第一題答對了！現在請選擇一條對角線，按下「沿對角線剪開並分離」，開始觀察。";
+            quizOptions.innerHTML = "";
+            quizFeedback.textContent = message || "準備好後，使用下方實驗工具箱進行操作。";
+            return;
+        }
+        if (quizStage === 3) {
+            quizStepLabel.textContent = "任務 2／4｜觀察完成";
+            quizProgress.style.width = "66%";
+            quizQuestion.textContent = "第二題答對了！請按下「旋轉」，讓第二塊三角形旋轉 180°，再觀察兩塊圖形。";
+            quizOptions.innerHTML = "";
+            quizFeedback.textContent = message || "你已經知道接下來要怎麼驗證了，繼續操作吧！";
+            return;
+        }
+        if (quizStage === 6) {
+            quizStepLabel.textContent = "探索完成｜4／4";
+            quizProgress.style.width = "100%";
+            quizQuestion.textContent = "🎉 探索完成！";
+            quizOptions.innerHTML = "";
+            quizFeedback.className = "quiz-feedback good";
+            quizFeedback.textContent = message || "歸納：平行四邊形的一條對角線會把它分成兩個全等三角形；這兩個三角形的對應邊，分別是平行四邊形的對邊。你可以按「還原圖形」再選另一條對角線，重新探索一次。";
+            return;
+        }
+        quizStepLabel.textContent = data.label;
+        quizProgress.style.width = (quizStage === 0 ? "0%" : quizStage <= 2 ? "25%" : quizStage <= 4 ? "50%" : "75%");
+        quizQuestion.textContent = data.question;
+        quizOptions.innerHTML = data.options.map(([value, label]) =>
+            `<button type="button" class="quiz-option" data-answer="${value}">${value}. ${label}</button>`
+        ).join("");
+        quizFeedback.className = "quiz-feedback" + (kind ? " " + kind : "");
+        quizFeedback.textContent = message || (quizStage === 0
+            ? "先預測答案。答對後才能剪開圖形。"
+            : "請先完成旋轉觀察，再回答這一題。");
+    }
+
+    quizOptions.addEventListener("click", event => {
+        const button = event.target.closest("button[data-answer]");
+        if (!button) return;
+        const data = quizData[quizStage];
+        if (!data) return;
+
+        if (button.dataset.answer !== data.correct) {
+            quizFeedback.className = "quiz-feedback try";
+            quizFeedback.textContent = "沒關係，探索本來就需要嘗試！" + data.hint;
+            return;
+        }
+
+        quizStage += 1;
+        quizFeedback.className = "quiz-feedback good";
+        quizFeedback.textContent = data.next;
+
+        if (quizStage === 1) {
+            btnCut.disabled = false;
+            renderQuiz(data.next, "good");
+        } else if (quizStage === 3) {
+            btnAnimate.disabled = false;
+            renderQuiz(data.next, "good");
+        } else if (quizStage === 5) {
+            renderQuiz(data.next, "good");
+        } else if (quizStage === 6) {
+            renderQuiz(data.next, "good");
+        }
+    });
+
 
     // ==========================================
     // 1. 原始頂點：固定不變，確保平行四邊形不變形
@@ -596,7 +756,7 @@
     // ==========================================
 
     btnCut.addEventListener("click", () => {
-        if (isCut) return;
+        if (isCut || quizStage !== 1) return;
 
         selectedDiag = document.querySelector(
             'input[name="diag"]:checked'
@@ -644,7 +804,9 @@
                 requestAnimationFrame(cutStep);
             } else {
                 dropProgress = 1;
-                btnAnimate.disabled = false;
+                btnAnimate.disabled = true;
+                quizStage = 2;
+                renderQuiz();
                 updateAIText();
                 draw();
             }
@@ -658,7 +820,7 @@
     // ==========================================
 
     btnAnimate.addEventListener("click", () => {
-        if (!isCut || dropProgress < 1 || animatingAngle) {
+        if (!isCut || dropProgress < 1 || animatingAngle || quizStage !== 3) {
             return;
         }
 
@@ -700,7 +862,10 @@
                     + 2 * Math.PI) % (2 * Math.PI);
 
                 animatingAngle = false;
-                btnAnimate.disabled = false;
+                hasRotated = true;
+                btnAnimate.disabled = true;
+                quizStage = 4;
+                renderQuiz();
                 draw();
             }
         }
@@ -708,8 +873,55 @@
         requestAnimationFrame(rotateStep);
     });
 
+    // 第四步的局部操作：只還原圖形，不重設已完成的任務進度。
+    function restoreShapeOnly() {
+        animationToken++;
+        isCut = false;
+        dropProgress = 0;
+        t2Angle = 0;
+        animatingAngle = false;
+        t1Offset = { x: 0, y: 0 };
+        t2Offset = { x: 0, y: 0 };
+        draggingPiece = null;
+        dragPointerId = null;
+        canvas.style.cursor = "default";
+        btnCut.disabled = true;
+        btnAnimate.disabled = true;
+        diagInputs.forEach(input => { input.disabled = false; });
+        draw();
+        updateAIText();
+    }
+
+    btnRestoreShape.addEventListener("click", () => {
+        if (quizStage !== 5) return;
+        restoreShapeOnly();
+        quizFeedback.className = "quiz-feedback good";
+        quizFeedback.textContent = "圖形已還原，任務進度保留！按「直接分成兩個三角形」，再觀察哪些邊互相對應。";
+    });
+
+    btnDirectSplit.addEventListener("click", () => {
+        if (quizStage !== 5) return;
+        // 保留目前選擇的對角線，直接顯示分離的兩塊三角形，不重跑前面動畫。
+        animationToken++;
+        isCut = true;
+        dropProgress = 1;
+        t2Angle = 0;
+        animatingAngle = false;
+        t1Offset = { x: 0, y: 0 };
+        t2Offset = { x: 0, y: 0 };
+        draggingPiece = null;
+        dragPointerId = null;
+        btnCut.disabled = true;
+        btnAnimate.disabled = true;
+        diagInputs.forEach(input => { input.disabled = true; });
+        draw();
+        updateAIText();
+        quizFeedback.className = "quiz-feedback good";
+        quizFeedback.textContent = "已直接分成兩個三角形！請觀察它們的對應邊，再回答下方問題。";
+    });
+
     // ==========================================
-    // 9. 還原按鈕
+    // 9. 還原按鈕（完整重來）
     // ==========================================
 
     btnReset.addEventListener("click", () => {
@@ -720,6 +932,8 @@
         dropProgress = 0;
         t2Angle = 0;
         animatingAngle = false;
+        quizStage = 0;
+        hasRotated = false;
 
         t1Offset = { x: 0, y: 0 };
         t2Offset = { x: 0, y: 0 };
@@ -729,7 +943,7 @@
 
         canvas.style.cursor = "default";
 
-        btnCut.disabled = false;
+        btnCut.disabled = true;
         btnAnimate.disabled = true;
 
         diagInputs.forEach(input => {
@@ -739,6 +953,7 @@
         document.getElementById("lineAC").checked = true;
         selectedDiag = "AC";
 
+        renderQuiz("圖形已還原。請重新預測，答對後再開始實驗。");
         updateAIText();
         draw();
     });
@@ -897,6 +1112,7 @@
     // 12. 初始化
     // ==========================================
 
+    renderQuiz();
     updateAIText();
     draw();
 
